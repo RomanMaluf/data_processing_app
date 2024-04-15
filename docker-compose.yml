@@ -1,0 +1,73 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:16.1-alpine
+    restart: always
+    env_file:
+      - .env.dev
+    ports:
+      - "127.0.0.1:5437:5432"
+    volumes:
+      - db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: password
+  redis:
+    image: redis:7.0-alpine
+    env_file:
+      - .env.dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./config/redis.conf:/redis.conf
+      - redis:/data
+    command: [ "redis-server", "/redis.conf", "--requirepass asdfqwerty1234" ]
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: bundle exec rails s -b '0.0.0.0'
+    depends_on:
+      - db
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - app_gem_cache:/data_processing_app/vendor/bundle
+    env_file:
+      - .env.dev
+    tty: true
+    stdin_open: true
+    environment:
+      BUNDLE_PATH: /data_processing_app/vendor/bundle
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+      DB_PORT: 5432
+      DB_HOST: db
+      PORT: 3000
+      RAILS_ENV: development
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+  sidekiq:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: bundle exec sidekiq
+    volumes:
+      - ../:/rails-app
+    environment:
+      RAILS_ENV: development
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: asdfqwerty1234
+    depends_on:
+      - db
+      - redis
+volumes:
+  app_gem_cache:
+  db:
+  redis:
