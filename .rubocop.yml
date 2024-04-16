@@ -6,7 +6,7 @@ AllCops:
   NewCops: enable
   Exclude:
     # - services/**/*
-    # - vendor/**/*
+    - vendor/**/*
     # - db/**/*
     - bin/**/*
 
